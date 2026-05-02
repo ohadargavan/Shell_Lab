@@ -5,12 +5,28 @@
 #include "LineParser.h"
 #include <stdlib.h> //for exiting with error
 
-void execute(cmdLine *pCmdLine) {
-    // run the command via 'execv'
-    //arguments[0] is the name of the command (and '->arguments' is the arguments array)
-    if (execv(pCmdLine->arguments[0], pCmdLine->arguments) == -1) { 
-        perror("Error executing command"); // print error in case of failure
-        exit(1); //exit with error
+
+void execute(cmdLine *pCmdLine, int debug_mode) {
+    int pid = fork();
+
+    if (pid == 0) {
+        // We use _exit() instead of exit() so the child process terminates immediately without flushing the parent's I/O buffers or accidentally continuing as a duplicate shell.
+        //the child procces
+        if (execvp(pCmdLine->arguments, pCmdLine->arguments) == -1) {
+            perror("Error executing command");
+            _exit(1); // end the child procces in case of an error
+        }
+    } else if (pid > 0) {
+        // main procces (the shell itself)
+        if (debug_mode) {
+            fprintf(stderr, "Procces ID: %d\n", pid);
+            fprintf(stderr, "Executing command: %s\n", pCmdLine->arguments);
+            //in foreground blocking is '1', for background blocking is '0'
+            fprintf(stderr, "Foreground or Background: %s\n", pCmdLine->blocking ? "Foreground" : "Background");
+        }
+    } else {
+        //Error in creating the fork
+        perror("fork failed");
     }
 }
 
@@ -18,6 +34,14 @@ int main(int argc, char **argv) {
     char cwd[PATH_MAX];
     char input [2048];
 
+    int debug_mode = 0;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-d") == 0) { //If -d was recieved as argument
+
+            
+             debug_mode = 1;
+        }
+    }
     while(1) {
         // gets the current path
         if (getcwd(cwd, PATH_MAX) != NULL) {
