@@ -12,7 +12,7 @@ void execute(cmdLine *pCmdLine, int debug_mode) {
     if (pid == 0) {
         // We use _exit() instead of exit() so the child process terminates immediately without flushing the parent's I/O buffers or accidentally continuing as a duplicate shell.
         //the child procces
-        if (execvp(pCmdLine->arguments, pCmdLine->arguments) == -1) {
+        if (execvp(pCmdLine->arguments[0], pCmdLine->arguments) == -1) {
             perror("Error executing command");
             _exit(1); // end the child procces in case of an error
         }
@@ -20,7 +20,7 @@ void execute(cmdLine *pCmdLine, int debug_mode) {
         // main procces (the shell itself)
         if (debug_mode) {
             fprintf(stderr, "Procces ID: %d\n", pid);
-            fprintf(stderr, "Executing command: %s\n", pCmdLine->arguments);
+            fprintf(stderr, "Executing command: %s\n", pCmdLine->arguments[0]);
             //in foreground blocking is '1', for background blocking is '0'
             fprintf(stderr, "Foreground or Background: %s\n", pCmdLine->blocking ? "Foreground" : "Background");
         }
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
         //Turn the input into a cmdLine structure
         cmdLine *parsedLine = parseCmdLines(input);
 
-        execute(parsedLine);
+        execute(parsedLine, debug_mode);
         freeCmdLines(parsedLine); //Free allocated memory
 
     }
