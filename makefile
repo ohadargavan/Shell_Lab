@@ -1,4 +1,4 @@
-all: myshell looper
+all: myshell looper mypipe
 
 myshell: myshell.c LineParser.c LineParser.h
 	gcc -o myshell myshell.c LineParser.c

@@ -24,8 +24,12 @@ int main(int argc, char *argv[]) {
         close(pipefwd[1]);  // Close write end in child
         
         char buffer[256];
-        read(pipefwd[0], buffer, sizeof(buffer));
-        
+        // store num bytes processed
+        int bytes_read = read(pipefwd[0], buffer, sizeof(buffer));
+        // insert null terminator at the end of the string
+        buffer[bytes_read] = '\0';
+
+
         // Print the received message
         printf("%s\n", buffer);
         
