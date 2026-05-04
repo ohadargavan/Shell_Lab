@@ -6,6 +6,7 @@
 #include <stdlib.h> //for exiting with error
 #include <sys/wait.h> //for wait
 #include <signal.h>
+#include <fcntl.h>
 
 
 void execute(cmdLine *pCmdLine, int debug_mode) {
@@ -54,8 +55,8 @@ void execute(cmdLine *pCmdLine, int debug_mode) {
             fprintf(stderr, "missing process ID argument.\n");
         } else {
             int pid = atoi(pCmdLine->arguments[1]);
-            // "-pid" sends the sig to the process group instead of a single process
-            if (kill(-pid, SIGKILL) == -1) {
+            // "killpg" sends the sig to the process group instead of a single process
+            if (killpg(pid, SIGKILL) == -1) {
                 perror("Error sending SIGKILL signal");
             }
         }
@@ -71,12 +72,41 @@ void execute(cmdLine *pCmdLine, int debug_mode) {
     }
     
     int pid = fork();
-
+    //Child procces
     if (pid == 0) {
-        // We use _exit() instead of exit() so the child process terminates immediately without flushing the parent's I/O buffers or accidentally continuing as a duplicate shell.
         //the child procces
+        // redirect input
+        if (pCmdLine->inputRedirect != NULL) {
+            close(0); // close the normal input (keyboard)
+            
+            //Open the file. Because 0 is free now, the file will automatically get the symbol 0
+            if (open(pCmdLine->inputRedirect, O_RDONLY) == -1) {
+                perror("Error opening input file");
+                _exit(1);
+            }
+        }
+
+        // Output Redirection
+        if (pCmdLine->outputRedirect != NULL) {
+            close(1); //close the normal output channel (the screen)
+            //Open the file. Because 1 is free now, the file will automatically get the symbol "1"
+            /*Explanation for the flags:
+            O_WRONLY: open the file Write only (no need to read)
+            O_CREAT: create the file if it does'nt exist yet. "0644" is the premissions for the created file
+            O_TRUNC: remove the content of the file (revert it to size 0)
+            */
+
+            if (open(pCmdLine->outputRedirect, O_WRONLY | O_CREAT | O_TRUNC, 0644) == -1) {
+                perror("Error opening output file");
+                _exit(1);
+            }
+        }
+
         if (execvp(pCmdLine->arguments[0], pCmdLine->arguments) == -1) {
             perror("Error executing command");
+                    
+            // We use _exit() instead of exit() so the child process terminates immediately without flushing the 
+            //parent's I/O buffers or accidentally continuing as a duplicate shell.
             _exit(1); // end the child procces in case of an error
         }
     } else if (pid > 0) {
@@ -128,7 +158,10 @@ int main(int argc, char **argv) {
         }
         //Turn the input into a cmdLine structure
         cmdLine *parsedLine = parseCmdLines(input);
-        execute(parsedLine, debug_mode);
+        if(parsedLine){
+            execute(parsedLine, debug_mode);
+
+        }
         freeCmdLines(parsedLine); //Free allocated memory
     }
     

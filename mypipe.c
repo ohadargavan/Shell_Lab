@@ -27,6 +27,10 @@ int main(int argc, char *argv[]) {
         // store num bytes processed
         int bytes_read = read(pipefwd[0], buffer, sizeof(buffer));
         // insert null terminator at the end of the string
+        if (bytes_read == -1) {
+            perror("read failed");
+            return 1;
+        }
         buffer[bytes_read] = '\0';
 
 
