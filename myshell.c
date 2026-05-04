@@ -4,9 +4,72 @@
 #include <string.h>
 #include "LineParser.h"
 #include <stdlib.h> //for exiting with error
+#include <sys/wait.h> //for wait
+#include <signal.h>
 
 
 void execute(cmdLine *pCmdLine, int debug_mode) {
+    //Send a SIGSTOP signal to a process to make it "sleep".
+    if(strcmp(pCmdLine->arguments[0], "stop") == 0) {
+        if(pCmdLine->argCount < 2) {
+            fprintf(stderr, "missing process ID argument.\n");
+        } else {
+            int pid = atoi(pCmdLine->arguments[1]);
+            if (kill(pid, SIGSTOP) == -1) {
+                perror("Error sending SIGSTOP signal");
+            }
+        }
+        return;
+    }
+    
+    //Wake up a sleeping (stopped) process (SIGCONT).
+    if(strcmp(pCmdLine->arguments[0], "wakeup") == 0) {
+        if(pCmdLine->argCount < 2) {
+            fprintf(stderr, "missing process ID argument.\n");
+        } else {
+            int pid = atoi(pCmdLine->arguments[1]);
+            if (kill(pid, SIGCONT) == -1) {
+                perror("Error sending SIGCONT signal");
+            }
+        }
+        return;
+    }
+    
+    //Terminate a running/sleeping process (SIGINT).
+    if(strcmp(pCmdLine->arguments[0], "ice") == 0) {
+        if(pCmdLine->argCount < 2) {
+            fprintf(stderr, "missing process ID argument.\n");
+        } else {
+            int pid = atoi(pCmdLine->arguments[1]);
+            if (kill(pid, SIGINT) == -1) {
+                perror("Error sending SIGINT signal");
+            }
+        }
+        return;
+    }
+    
+    //Force termination of an entire process group (SIGKILL to the process group headed by ID). 
+    if(strcmp(pCmdLine->arguments[0], "nuke") == 0) {
+        if(pCmdLine->argCount < 2) {
+            fprintf(stderr, "missing process ID argument.\n");
+        } else {
+            int pid = atoi(pCmdLine->arguments[1]);
+            // "-pid" sends the sig to the process group instead of a single process
+            if (kill(-pid, SIGKILL) == -1) {
+                perror("Error sending SIGKILL signal");
+            }
+        }
+        return;
+    }
+
+    //"cd" requires special treatment
+    if (strcmp(pCmdLine->arguments[0], "cd") == 0){
+        if (chdir(pCmdLine->arguments[1]) != 0) {
+            perror("chdir() failed");
+        }
+        return;
+    }
+    
     int pid = fork();
 
     if (pid == 0) {
@@ -23,6 +86,10 @@ void execute(cmdLine *pCmdLine, int debug_mode) {
             fprintf(stderr, "Executing command: %s\n", pCmdLine->arguments[0]);
             //in foreground blocking is '1', for background blocking is '0'
             fprintf(stderr, "Foreground or Background: %s\n", pCmdLine->blocking ? "Foreground" : "Background");
+        }
+        //task 1c
+        if(pCmdLine->blocking){
+            waitpid(pid, NULL, 0);
         }
     } else {
         //Error in creating the fork
@@ -61,10 +128,8 @@ int main(int argc, char **argv) {
         }
         //Turn the input into a cmdLine structure
         cmdLine *parsedLine = parseCmdLines(input);
-
         execute(parsedLine, debug_mode);
         freeCmdLines(parsedLine); //Free allocated memory
-
     }
     
     return 0;
