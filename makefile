@@ -6,5 +6,8 @@ myshell: myshell.c LineParser.c LineParser.h
 looper: looper.c
 	gcc -o looper looper.c
 
+mypipe: mypipe.c
+	gcc -o mypipe mypipe.c
+
 clean:
-	rm -f myshell looper LineParser
+	rm -f myshell looper LineParser mypipe
