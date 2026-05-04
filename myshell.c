@@ -35,10 +35,8 @@ int main(int argc, char **argv) {
     char input [2048];
 
     int debug_mode = 0;
-    for (int i = 1; i < argc; i++) {
+    for (int i = 1; !debug_mode && i < argc; i++) {
         if (strcmp(argv[i], "-d") == 0) { //If -d was recieved as argument
-
-            
              debug_mode = 1;
         }
     }
